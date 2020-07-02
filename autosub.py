@@ -39,7 +39,7 @@ def get_subs(vid, lang="en"):
     langs = get_langs(vid)
 
     if lang not in langs:
-        raise Exception(f"Language {en} not available")
+        raise Exception(f"Language {lang} not available")
     
     sub_req = requests.get(
         "http://api.thesubdb.com/",
@@ -71,7 +71,7 @@ def ffprocess(line):
 # ffmpeg -v quiet -stats -i Good.Will.Hunting.1997.720p.@sourcemovies.mp4 -map 0:v:0 -c copy -f null -
 def add_subs(vid, lang="en"):
     vid_path = Path(vid)
-    print("Downloading subtitles...")
+    print(f"Downloading subtitles for language {lang}...")
     subfile = get_subs(vid, lang=lang)
     print("Processing subtitles...")
     frames = ffprocess(subprocess.Popen(['ffmpeg', '-v', 'quiet', '-stats', '-i', vid, '-map', '0:v:0', '-c', 'copy', '-f', 'null', '-'], stderr=subprocess.PIPE).stderr.read().decode("utf-8"))
