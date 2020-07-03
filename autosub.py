@@ -60,6 +60,10 @@ def get_subs(vid, lang="en"):
     
     return filename
 
+def delete(filename):
+    if os.path.exists(filename):
+        os.remove(filename)
+
 def ffprocess(line):
     if len(line.split()[0]) == 6:
         frame = int(line.split()[1])
@@ -71,19 +75,23 @@ def ffprocess(line):
 # ffmpeg -v quiet -stats -i Good.Will.Hunting.1997.720p.@sourcemovies.mp4 -map 0:v:0 -c copy -f null -
 def add_subs(vid, lang="en"):
     vid_path = Path(vid)
-    print(f"Downloading subtitles for language {lang}...")
-    subfile = get_subs(vid, lang=lang)
-    print("Processing subtitles...")
-    frames = ffprocess(subprocess.Popen(['ffmpeg', '-v', 'quiet', '-stats', '-i', vid, '-map', '0:v:0', '-c', 'copy', '-f', 'null', '-'], stderr=subprocess.PIPE).stderr.read().decode("utf-8"))
-    subprocess.Popen(["ffmpeg", "-i", subfile, "temp.ass"], stderr=subprocess.DEVNULL).wait()
-    print("Applying subtitles to video...")
-    proc = subprocess.Popen(["ffmpeg", "-v", "quiet", "-stats", "-i", vid, "-vf", "ass=temp.ass", f"{vid_path.stem}.Subbed.{lang.upper()}{vid_path.suffix}"], stderr=subprocess.PIPE, universal_newlines=True)
-    pbar = tqdm(total=frames, unit='frames')
+    subbed_name = f"{vid_path.stem}.Subbed.{lang.upper()}{vid_path.suffix}"
+    try:
+        print(f"Downloading subtitles for language {lang}...")
+        subfile = get_subs(vid, lang=lang)
+        print("Processing subtitles...")
+        frames = ffprocess(subprocess.Popen(['ffmpeg', '-v', 'quiet', '-stats', '-i', vid, '-map', '0:v:0', '-c', 'copy', '-f', 'null', '-'], stderr=subprocess.PIPE).stderr.read().decode("utf-8"))
+        subprocess.Popen(["ffmpeg", "-i", subfile, "temp.ass"], stderr=subprocess.DEVNULL).wait()
+        print("Applying subtitles to video...")
+        proc = subprocess.Popen(["ffmpeg", "-v", "quiet", "-stats", "-i", vid, "-vf", "ass=temp.ass", subbed_name], stderr=subprocess.PIPE, universal_newlines=True)
+        pbar = tqdm(total=frames, unit='frames')
+        
+        for line in proc.stderr:
+            pbar.n = ffprocess(line)
+            pbar.refresh()
+    except:
+        delete(subbed_name)
     
-    for line in proc.stderr:
-        pbar.n = ffprocess(line)
-        pbar.refresh()
-    
-    os.remove(subfile)
-    os.remove("temp.ass")
+    delete(subfile)
+    delete("temp.ass")
 
